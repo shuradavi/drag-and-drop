@@ -77,7 +77,8 @@ function App() {
 					(res.status === 200) && setDropZoneValue(prev => prev.map(item => {
 						if (item.id === file.id) {
 							console.log(item);
-							return {...item, status: 'FILE_UPLOADED'}
+							item.status = 'FILE_UPLOADED'
+							return item
 						} else {
 							return item
 						}
@@ -106,7 +107,7 @@ function App() {
 						Перенесите файлы для их загрузки
 			  	</div>
 		  }
-		  {/* {dropZoneValue &&
+		  {dropZoneValue &&
 			  <ol className='item-name-wrapper'>
 			  		{dropZoneValue.map((file) =>
 						<li style={{color: '#9DFF5A'}}
@@ -132,7 +133,7 @@ function App() {
 					  <div style={{ color: '#FE4E4E' }}>
 						  {`Превышено количество файлов! Ожидаемое количество файлов: ${requirements.filesAmount}, получено файлов: ${dropZoneRejectedFiles.length}`}
 					  </div>}
-			  </ul>} */}
+			  </ul>}
     </div>
   );
 }
