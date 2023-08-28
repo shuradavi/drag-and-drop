@@ -4,7 +4,8 @@ export const FILE_STATUS_MAPPER = {
 	FILE_NAME_TOO_LONG: 'Некорректная длина названия файла',
 	FILE_SIZE_TOO_LARGE: 'Некорректный размер файла',
 	FILE_FORMAT_INVALID: 'Некорректный формат файла',
-	FILE_STATUS_OK: 'Файл успешно загружен',
+	FILE_STATUS_OK: 'Файл загружается',
+	FILE_UPLOADED: 'Файл успешно загружен',
 }
 // Проверка на соответствие формата файла
 export const fileNameValidate = (file) => {
