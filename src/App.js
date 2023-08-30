@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './App.css';
 import requirements from './components/Params/Params';
-import { fileValidate, FILE_STATUS_MAPPER, maxNumberOfFiles } from './components/utils/utils'
-import { max } from 'ramda';
+import { fileValidate, isUploaded, isValid, isNotLoad, FILE_STATUS_MAPPER, maxNumberOfFiles, clearIsNotLoaded, chageStatusTooMany } from './components/utils/utils'
+import { drop } from 'ramda';
 const { v4: uuidv4 } = require('uuid');
 
 const hostUrl = 'http://localhost:4003/files/save'
@@ -12,8 +12,6 @@ const hostUrl = 'http://localhost:4003/files/save'
 function App() {
 	const [drag, setDrag] = useState(false)
 	const [dropZoneValue, setDropZoneValue] = useState('')
-	const [dropZoneRejectedFiles, setDropZoneRejectedFiles] = useState('')
-
 	const dragStartHandler = (e) => {
 		e.preventDefault()
 		setDrag(true)
@@ -22,49 +20,7 @@ function App() {
 		e.preventDefault()
 		setDrag(false)
 	}
-
-
-	const onDropHandler = async (e) => {
-		e.preventDefault()
-		let validFiles = null;  // Создаем переменную для хранения валидный файлов
-		let invalidFiles = null; // Создаем переменную для хранения невалидных файлов
-		
-		let files = [...e.dataTransfer.files] // получаем файлы, помещаем в массив
-		
-		if (!maxNumberOfFiles(files)) {   // сравниваем кол-во выбранных файлов с максимальным кол-вом файлов, устанавливаем статус для "избыточных фалов"
-			validFiles = files.slice(0, 10)
-			invalidFiles = files.slice(10)
-			for (let i = 0; i < invalidFiles.length; i++) {
-				const fileID = uuidv4();
-				let file = invalidFiles[i];
-				file.status = 'TOO_MANY_FILES';
-				file.id = fileID;
-			}
-		} else validFiles = files;
-
-
-		
-		for (let i = 0; i < validFiles.length; i++) { // проводим валидацию файлов, добавляем соответствующий статус файлу.
-			let file = validFiles[i];
-			const fileID = uuidv4();
-			file.status = fileValidate(file);
-			file.id = fileID;
-		}
-
-		invalidFiles = files.filter(file => file.status !== 'FILE_STATUS_OK') // файлы непрошедшие валидацию
-		validFiles = files.filter(file => file.status === 'FILE_STATUS_OK')  // файлы прошедшие валидацию
-		console.log('valid: ', validFiles, 'invalid: ', invalidFiles, 'ALL FILES: ', files);
-
-		if (maxNumberOfFiles([...dropZoneValue, ...validFiles].filter(file => file.status === 'FILE_STATUS_OK'))) { // в случае упешного прохождения проверки суммы загруженных и добавляемых файлов, обновляем состояние
-			setDropZoneValue(prev => [...prev, ...files])                                                          
-		} else {																									// в противном случае присваиваем добавляемым соответствующий статус	
-			for (let i = 0; i < validFiles.length; i++) {
-				let file = validFiles[i];
-				file.status = 'TOO_MANY_FILES';
-			}
-			setDropZoneValue(prev => [...prev, ...files])
-		}
-
+	const postRequest = async (files, validFiles) => {		// загружаем файлы на сервер, после загрузки обновляем статус файлов
 		await Promise.all(validFiles.map((file) => {
 			const formData = new FormData();
 			formData.append('file', file)
@@ -73,22 +29,63 @@ function App() {
 					"Content-Type": "multipart/form-data",
 				}
 			})
-				.then(res => {
-					(res.status === 200) && setDropZoneValue(prev => prev.map(item => {
+				.then(() => {
+					setDropZoneValue(prev => prev.map(item => {
 						if (item.id === file.id) {
-							console.log(item);
 							item.status = 'FILE_UPLOADED'
 							return item
 						} else {
 							return item
 						}
 					}))
-				})
-		})).then(console.log('UPLOAD COMPLETED'))
+				}
+				)
+		})).then(console.log('Загрузка фаайлов завершена: ', validFiles.map(file => file.name)), setDropZoneValue(prev => [...prev, ...files]))
 	}
-	console.log(dropZoneValue);
+	const onDropHandler = async (e) => {
+		e.preventDefault()
+		dropZoneValue && setDropZoneValue(prev => clearIsNotLoaded(prev))		// очищаем dropZoneValue от предыдущих добавленных файлов, неподлежащих загрузке
+		let validFiles = null;		// создаем переменную для хранения валидный файлов
+		let invalidFiles = null;		// создаем переменную для хранения невалидных файлов
+		let files = [...e.dataTransfer.files]		// создаём переменную для хранения полученных файлов
+		for (let i = 0; i < files.length; i++) {		// проводим валидацию, присваиваем файлам статус, для валидных файлов добавляем соответствующую пометку, и уникальный ID
+			const fileID = uuidv4();
+			let file = files[i];
+			file.status = fileValidate(file);
+			file.isValid = isValid(file);		// булевое значение валидности файла (будет использовано для реализации догрузки файлов)
+			file.id = fileID;
+		}
+		invalidFiles = files.filter(file => !isValid(file)) // файлы непрошедшие валидацию
+		validFiles = files.filter(file => isValid(file))  // файлы прошедшие валидацию
+		
+		if (dropZoneValue.length && maxNumberOfFiles(dropZoneValue.filter(file => isUploaded(file)).length + validFiles.length)) {		//  условие: 1) непустое состояние ДЗ; 2) сумма кол-ва загруженных файлов и валидных файлов не превышает допустимое значение 
+			postRequest(files, validFiles);
+			console.log('Отработало первое условие ДЗ + кол-во');
+		} 	else if (dropZoneValue.length) {		//		условие: непустое состояние ДЗ
+				let availableSpace = requirements.filesAmount - dropZoneValue.filter(file => isUploaded(file)).length;		//  вычисляем свободное пространство на сервере
+			if (availableSpace > 0) {		// отработает при наличии свободного простраснства на сервере
+					chageStatusTooMany(validFiles.slice(availableSpace-1 ))		// изменения статуса у валидных файлов, которым не хватаает свободного пространства
+					validFiles = validFiles.slice(0, availableSpace)		// валидные файлы, которые будут загружены на сервер
+					postRequest(files, validFiles);	
+					console.log('Отработало второе условие ДЗ + свободное место');
 
-  return (
+				} else {		// отработает при отсутствии свободного проостранства
+					const allFiles = chageStatusTooMany(validFiles).concat(invalidFiles);
+					setDropZoneValue(prev => [...prev, ...allFiles])
+					console.log('отработало третье условие ДЗ и иначе');
+				}
+		} else if (maxNumberOfFiles(files)) {		// условие: 1) пустое состояние ДЗ; 2) кол-во принятых файлов не превышает допустимое значение
+			postRequest(files, validFiles);
+			console.log('отработало четвертое условие кол-во файлов и пустая ДЗ');
+		} else {		// условие: кол-во принятых файлов превышает допустимое значение
+			const allFiles = chageStatusTooMany(validFiles).concat(invalidFiles);		// изменим статус валидных файлов на соответствующий. Обновим состояние без загрузки файлов на сервер.
+			setDropZoneValue(prev => [...prev, ...allFiles])
+			console.log('отработало пятое условие иначе - пустая ДЗ, превышено количество файлов');
+			}
+		}
+	dropZoneValue.length && console.log('DZV: ', dropZoneValue);
+
+	return (
 	  <div className="App">
 		  {drag
 			  ? <div
@@ -107,9 +104,9 @@ function App() {
 						Перенесите файлы для их загрузки
 			  	</div>
 		  }
-		  {dropZoneValue &&
+		  {dropZoneValue &&		// выводим список загружаемых/загруженных на сервер файлов
 			  <ol className='item-name-wrapper'>
-			  		{dropZoneValue.map((file) =>
+			  		{dropZoneValue.filter(file => isUploaded(file)).map((file) =>
 						<li style={{color: '#9DFF5A'}}
 								key={file.id}>
 					  		{file.name.substring(0, file.name.lastIndexOf('.'))}
@@ -118,8 +115,20 @@ function App() {
 				  )}
 			  </ol>
 		  }
+			{dropZoneValue &&		// выводим список невалидных файлов
+				
+			  <ol className='item-name-wrapper'>
+			  		{isNotLoad(dropZoneValue).map((file) =>
+						<li style={{color: '#FE4E4E'}}
+								key={file.id}>
+					  		{file.name.substring(0, file.name.lastIndexOf('.'))}
+					  		<div>{FILE_STATUS_MAPPER[file.status]}</div>
+				  		</li>
+				  )}
+			  </ol>
+		  }
 
-		  {dropZoneRejectedFiles && dropZoneRejectedFiles.length > 0 &&
+		  {/* {dropZoneRejectedFiles && dropZoneRejectedFiles.length > 0 &&
 			  <ul className='item-name-wrapper'>
 				  {(dropZoneRejectedFiles.length <= requirements.filesAmount) && dropZoneRejectedFiles.map((file) => // выводим файлы непрошедшие валидацию и их статусы.
 					  <li 
@@ -133,7 +142,7 @@ function App() {
 					  <div style={{ color: '#FE4E4E' }}>
 						  {`Превышено количество файлов! Ожидаемое количество файлов: ${requirements.filesAmount}, получено файлов: ${dropZoneRejectedFiles.length}`}
 					  </div>}
-			  </ul>}
+			  </ul>} */}
     </div>
   );
 }
