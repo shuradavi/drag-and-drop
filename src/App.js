@@ -3,7 +3,6 @@ import axios from 'axios';
 import './App.css';
 import requirements from './components/Params/Params';
 import { fileValidate, isUploaded, isValid, isNotLoad, FILE_STATUS_MAPPER, maxNumberOfFiles, clearIsNotLoaded, chageStatusTooMany } from './components/utils/utils'
-import { drop } from 'ramda';
 const { v4: uuidv4 } = require('uuid');
 
 const hostUrl = 'http://localhost:4003/files/save'
@@ -81,7 +80,8 @@ function App() {
 			const allFiles = chageStatusTooMany(validFiles).concat(invalidFiles);		// изменим статус валидных файлов на соответствующий. Обновим состояние без загрузки файлов на сервер.
 			setDropZoneValue(prev => [...prev, ...allFiles])
 			console.log('отработало пятое условие иначе - пустая ДЗ, превышено количество файлов');
-			}
+		}
+		setDrag(false)
 		}
 	dropZoneValue.length && console.log('DZV: ', dropZoneValue);
 
@@ -116,10 +116,13 @@ function App() {
 			  </ol>
 		  }
 			{dropZoneValue &&		// выводим список невалидных файлов
-				
-			  <ol className='item-name-wrapper'>
-			  		{isNotLoad(dropZoneValue).map((file) =>
-						<li style={{color: '#FE4E4E'}}
+				<ol className='item-name-wrapper'>
+					{!maxNumberOfFiles(isNotLoad(dropZoneValue).length) &&
+						<div style={{ color: '#FE4E4E' }}>
+							{`Превышено количество файлов! Ожидаемое количество файлов: ${requirements.filesAmount}, получено файлов: ${dropZoneValue.filter(file => isUploaded(file)).length}`}
+						</div>}
+					{isNotLoad(dropZoneValue).map((file) =>
+						<li style={{color: 'black'}}
 								key={file.id}>
 					  		{file.name.substring(0, file.name.lastIndexOf('.'))}
 					  		<div>{FILE_STATUS_MAPPER[file.status]}</div>
