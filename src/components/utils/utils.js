@@ -12,6 +12,12 @@ export const fileNameValidate = (file) => {		// Проверка на соотв
 	return (requirements.format.includes(file.name.substring(file.name.lastIndexOf('.'))))
 
 }
+export const checkDownloadFileStatus = (response) => {
+	if (response.status === 204) {
+		return 204
+	} else if (response.status === 200)
+		return 200;
+}
 
 export const isValid = (file) => {		// прооверка на валидацию	
 	return (file.status === 'FILE_STATUS_OK')
