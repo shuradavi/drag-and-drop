@@ -52,22 +52,32 @@ function App() {
 		console.log('file list: ', response.data);
 		setFilesFromServev(response.data)
 	}
+
 	const deleteFile = async (id) => {
 		await axios.get(`${hostUrl}delete/${id}`)
 		getFilesList()
 	}
 
 	const downloadFile = async (id) => {
-		const response = await axios.get(`${hostUrl}download/${id}`)
+		let response = await axios.get(`${hostUrl}download/${id}`)
 		if (response.status === 204) {
-				console.log(response);
-			await new Promise(resolve => setTimeout(() => resolve, 3000))
-			await downloadFile(id);
+			console.log(response);
+			setTimeout(() => {
+				console.log('ID: ', id);
+				downloadFile(id)
+			}, 100);
 			
 		} else if (response.status === 200) {
-			console.log(response.json());
+			console.log('status 200', response);
+			let result = await response.data
+			const type = response.headers["content-type"];
+          	let blob = new Blob([result.data], {type: type});
+			let link = document.createElement('a')
+			link.href = window.URL.createObjectURL(blob)
+			link.download = 'New File'
+			link.click()
+			console.log('result: ', result, 'blob: ', blob, 'link: ', link);
 		}
-		
 	}
 
 	const onDropHandler = async (e) => {
