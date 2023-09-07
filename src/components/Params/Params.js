@@ -1,7 +1,7 @@
 const requirements = {
-	format: ['.pdf', '.docx', '.txt'],
+	format: ['.pdf', '.docx', '.txt', '.jpg'],
 	maxNameLength: 15,
-	maxSize: 12000,
+	maxSize: 120000,
 	filesAmount: 10,
 };
 

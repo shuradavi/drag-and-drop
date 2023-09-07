@@ -58,25 +58,28 @@ function App() {
 		getFilesList()
 	}
 
-	const downloadFile = async (id) => {
-		let response = await axios.get(`${hostUrl}download/${id}`)
+	const downloadFile = async (file) => {
+		let response = await axios.get(`${hostUrl}download/${file.id}`)
 		if (response.status === 204) {
 			console.log(response);
 			setTimeout(() => {
-				console.log('ID: ', id);
-				downloadFile(id)
+				console.log('ID: ', file.id);
+				downloadFile(file)
 			}, 100);
 			
 		} else if (response.status === 200) {
 			console.log('status 200', response);
-			let result = await response.data
+			// let result = await response.data
+			console.log('На входе в конструктор new Blob: ', response);
 			const type = response.headers["content-type"];
-          	let blob = new Blob([result.data], {type: type});
+          	let blob = new Blob([response], {type: type});
+			// let blob = await response.blob()
 			let link = document.createElement('a')
-			link.href = window.URL.createObjectURL(blob)
-			link.download = 'New File'
+			link.href = URL.createObjectURL(blob)
+			link.download = file.filename
+			console.log('LINK: ', link);
 			link.click()
-			console.log('result: ', result, 'blob: ', blob, 'link: ', link);
+			// console.log('result: ', result, 'blob: ', blob, 'link: ', link);
 		}
 	}
 
@@ -158,7 +161,7 @@ function App() {
 								</button>
 								<button
 									className='del-btn'
-									onClick={() => downloadFile(file.id)}>
+									onClick={() => downloadFile(file)}>
 										Download
 								</button>
 						</li>)}
