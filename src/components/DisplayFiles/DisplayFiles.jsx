@@ -1,23 +1,21 @@
 import React from 'react';
-import { FILE_STATUS_MAPPER, requirements } from '../Params/Params';
-import { isTheNumberOfFilesAllowed, fileNameWithoutFormat  } from '../Functions/functions';
+import { deleteFile, downloadFile } from '../API/get';
+import { FILE_STATUS_MAPPER, hostUrl, requirements } from '../Params/Params';
+import { isTheNumberOfFilesAllowed, fileNameWithoutFormat } from '../Functions/functions';
 
-const DisplayFiles = ({state}) => {
+const DisplayFiles = ({state, setState}) => {
 	return (
 		<>
 			{!!state.length && 
 				<ol
-					className='item-name-wrapper'
-					style={{ color: '#CC3333', fontWeight: '400'  }}>
-					Не будут загружены:
-					{!isTheNumberOfFilesAllowed(state)
-						? <div>{`Ожидаемое количество файлов: ${requirements.filesNumbers}, получено файлов: ${state.length}`}</div>
-						: null
-					}
+					className='item-name-wrapper'>
+					<div style={{color: 'black'}}>Файлы на сервере</div>
 					{state.map(file => 
 						<li style={{ color: 'yellow', textAlign: 'start' }}
 							key={file.id}>
-							{`${fileNameWithoutFormat(file.item)}: ${FILE_STATUS_MAPPER[file.status]}`}
+							{fileNameWithoutFormat(file.filename)}
+							<button className='btn' onClick={() => downloadFile(file)}>save</button>
+							<button className='btn' onClick={() => deleteFile(file.id, setState)}>del</button>
 						</li>)}
 				</ol>
 			}

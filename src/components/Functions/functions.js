@@ -1,15 +1,13 @@
-import { uploadFiles } from "../API/post";
 import { requirements } from "../Params/Params";
 const { v4: uuidv4 } = require('uuid');
 
-export const fileNameWithoutFormat = (file) => {
+export const fileNameWithoutFormat = (name) => {
 	// console.log('FILE NAME: ', file.item.name.substring(0, file.item.name.lastIndexOf('.')));
-	return file.item.name.substring(0, file.item.name.lastIndexOf('.'))
+	return name.substring(0, name.lastIndexOf('.'))
 };
 
 export const validationByFormat = (file) => {		// проверка формата файла
 	try {
-		console.log('Проверка формата файла');
 		return (requirements.format.includes(file.name.substring(file.name.lastIndexOf('.'))))
 	} catch (error) {
 		console.warn(error);
@@ -36,13 +34,11 @@ export const fileValidation = (file) => {		// валидация файла
 
 export const setTheStatusOfFiles = (files) => {
 	try {
-		return files.map(item => {
+		return files.map(f => {
 			const fileID = uuidv4();
 			let file = new Object();
-			// console.log('FILE 39str: ', file);
-			file.item = item;
+			file.item = f;
 			file.id = fileID;
-			// console.log('FILE: ', file);
 			file.status = fileValidation(file.item);
 			return file
 		})

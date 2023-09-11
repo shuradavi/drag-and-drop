@@ -1,14 +1,11 @@
 import axios from "axios";
+import { hostUrl } from "../Params/Params";
 
-export const uploadFiles = async (files, url) => {
+export const uploadFiles = async (files) => {
 	const promise = files.map(file => {
 		const formData = new FormData();
 		formData.append('file', file.item)
-		axios.post(url+'save', formData, {
-			headers: {
-				'Content-Type': 'multipart/form-data',
-			}
-		})
+		axios.post(hostUrl.upload, formData)
 	})
-	await Promise.all(promise).then(console.log('Загрузка файлов завершена: '))
+	await Promise.all(promise).then(console.log('Загрузка файлов завершена: ', files))
 }
