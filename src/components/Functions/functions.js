@@ -1,5 +1,4 @@
 import { requirements } from "../Params/Params";
-import { uploadFiles } from "../API/post";
 import { getFilesList } from "../API/get";
 const { v4: uuidv4 } = require('uuid');
 
@@ -31,9 +30,6 @@ export const fileValidation = (file) => {		// валидация файла
 	else return 'FILE_STATUS_OK'
 };
 
-
-
-
 export const setTheStatusOfFiles = (files) => {
 	try {
 		return files.map(f => {
@@ -61,42 +57,60 @@ export const isTheNumberOfFilesAllowed = (files) => {		// Количество �
 	return (files.length <= requirements.filesNumbers)
 }
 
-export const fileUploadScript = (files, filesFromServer, setFilesFromServev, setUnusableFiles) => {
+const calcTheDifferenceAndSort = (validFiles, space) => {
+	let difference = validFiles.length - space;
+	for (let i = 0; i < difference; i++) {
+		validFiles[i].status = 'TOO_MANY_FILES'
+	}
+	return validFiles;
+}
+
+export const fileUploadScript = (files, availableSpace) => {
+	console.log('start:', files);
 	let validFiles = getValidFiles(files);
 	let invalidFiles = getInvalidFiles(files);
-	let availableSpace = requirements.filesNumbers - filesFromServer.length;
 	if (!isTheNumberOfFilesAllowed(files)) {
-		try {
-			files.map(file => {
-				file.status = 'TOO_MANY_FILES'
-				return file
-			})
-			setUnusableFiles(files)
-		} catch (error) {
-			console.log(error);
-		}
+		files.map(file => {
+			file.status = 'TOO_MANY_FILES'
+			return file
+		})
+		console.log('событие 1');
+		return {
+			forUpload: [],
+			forUnusable: files,
+		} 
 	} else if (availableSpace <= 0) {
-		try {
-			validFiles = validFiles.map(file => {
-				file.status = 'TOO_MANY_FILES'
-				return file
-			})
-			setUnusableFiles(files)
-		} catch (error) {
-			console.log(error);
+		validFiles = validFiles.map(file => {
+			file.status = 'TOO_MANY_FILES'
+			return file
+		})
+		console.log('событие 2');
+		return {
+			forUpload: [],
+			forUnusable: files,
+		} 
+	}
+	else if (!validFiles.length) {
+		console.log('событие 3');
+		return {
+			forUpload: [],
+			forUnusable: files,
 		}
-	} else if (!validFiles.length) {
-		console.log('Валидные файлы не найдены')
-		console.log('files: ', files);
-		setUnusableFiles(files)
+	}
+	else if (validFiles.length > availableSpace) {
+		let arr = calcTheDifferenceAndSort(validFiles, availableSpace)
+		invalidFiles = [...invalidFiles,...arr.filter(f => f.status !== 'FILE_STATUS_OK')]
+		validFiles = arr.filter(f => f.status === 'FILE_STATUS_OK')
+		console.log('событие 4');
+		return {
+			forUpload: validFiles,
+			forUnusable: invalidFiles,
+		} 
 	} else {
-		try {
-			console.log('Файлы загружаются на сервер: ', validFiles);
-			uploadFiles(validFiles)
-			getFilesList(setFilesFromServev)
-			setUnusableFiles(invalidFiles)
-		} catch (error) {
-			console.log(error);
+		console.log('событие 5');
+		return {
+			forUpload: validFiles,
+			forUnusable: invalidFiles,
 		}
-		}
+	}
 }

@@ -1,12 +1,5 @@
 import axios from "axios";
 import { hostUrl } from "../Params/Params";
-
-export const getFilesList = async (setFilesFromServev) => {
-		const response = await axios.get(hostUrl.list)
-		console.log('file list: ', response.data);
-		
-		setFilesFromServev(response.data)
-}
 	
 export const downloadFile = async (file) => {
 	let response = await axios({
@@ -33,9 +26,4 @@ export const downloadFile = async (file) => {
 		document.body.removeChild(link);
 		URL.revokeObjectURL(href);
 	}
-}
-
-export const deleteFile = async (id, setState) => {
-	await axios.get(`${hostUrl.delete}${id}`)
-	getFilesList(setState)
 }

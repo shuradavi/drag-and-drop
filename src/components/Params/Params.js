@@ -19,4 +19,3 @@ export const hostUrl = {
 	download: 'http://localhost:4003/files/download/',
 	list: 'http://localhost:4003/files/list',
 }
-
