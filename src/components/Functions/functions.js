@@ -1,4 +1,6 @@
 import { requirements } from "../Params/Params";
+import { uploadFiles } from "../API/post";
+import { getFilesList } from "../API/get";
 const { v4: uuidv4 } = require('uuid');
 
 export const fileNameWithoutFormat = (name) => {
@@ -30,7 +32,7 @@ export const fileValidation = (file) => {		// валидация файла
 };
 
 
-// НЕВЕДОМАЯ ХУЙНЯ ВОЗВРАЩАЕТ МАССИВ ОБЪЕКТОВ, МУТИРУЕТ item???
+
 
 export const setTheStatusOfFiles = (files) => {
 	try {
@@ -59,27 +61,42 @@ export const isTheNumberOfFilesAllowed = (files) => {		// Количество �
 	return (files.length <= requirements.filesNumbers)
 }
 
-// export const fileUploadScript = (files, filesFromServer) => {
-// 	files = setTheStatusOfFiles(files);
-// 	let validFiles = getValidFiles(files);
-// 	let invalidFiles = getInvalidFiles(files);
-// 	let availableSpace = requirements.filesAmount - filesFromServer.length;
-
-
-// 	if (!isTheNumberOfFilesAllowed(files)) {
-// 		files.map(file => {
-// 			file.status = 'TOO_MANY_FILES'
-// 			return file
-// 		})
-// 		setUnusableFiles(files)
-// 	} else if (availableSpace <= 0) {
-// 		validFiles = validFiles.map(file => {
-// 			file.status = 'TOO_MANY_FILES'
-// 			return file
-// 		})
-// 		setUnusableFiles(files)
-// 	} else {
-// 		uploadFiles(validFiles)
-// 		setUnusableFiles(invalidFiles)
-// 		}
-// }
+export const fileUploadScript = (files, filesFromServer, setFilesFromServev, setUnusableFiles) => {
+	let validFiles = getValidFiles(files);
+	let invalidFiles = getInvalidFiles(files);
+	let availableSpace = requirements.filesNumbers - filesFromServer.length;
+	if (!isTheNumberOfFilesAllowed(files)) {
+		try {
+			files.map(file => {
+				file.status = 'TOO_MANY_FILES'
+				return file
+			})
+			setUnusableFiles(files)
+		} catch (error) {
+			console.log(error);
+		}
+	} else if (availableSpace <= 0) {
+		try {
+			validFiles = validFiles.map(file => {
+				file.status = 'TOO_MANY_FILES'
+				return file
+			})
+			setUnusableFiles(files)
+		} catch (error) {
+			console.log(error);
+		}
+	} else if (!validFiles.length) {
+		console.log('Валидные файлы не найдены')
+		console.log('files: ', files);
+		setUnusableFiles(files)
+	} else {
+		try {
+			console.log('Файлы загружаются на сервер: ', validFiles);
+			uploadFiles(validFiles)
+			getFilesList(setFilesFromServev)
+			setUnusableFiles(invalidFiles)
+		} catch (error) {
+			console.log(error);
+		}
+		}
+}

@@ -18,7 +18,7 @@ export const downloadFile = async (file) => {
 		console.log('ЗАПРОС');
 		setTimeout(() => {
 			downloadFile(file)
-		}, 100);
+		}, 3000);
 		
 	} else if (response.status === 200) {
 		let data = await response.data
